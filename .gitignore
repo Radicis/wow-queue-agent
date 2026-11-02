@@ -1,0 +1,13 @@
+node_modules/
+bin/
+obj/
+dist/
+*.log
+android/android/app/build/
+android/android/build/
+android/android/.gradle/
+android/android/local.properties
+*.keystore
+!debug.keystore
+.idea/
+.vs/

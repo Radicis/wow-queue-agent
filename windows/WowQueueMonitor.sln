@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WowQueueAgent", "WowQueueAgent\WowQueueAgent.csproj", "{511EDDDF-3534-4F6B-BBFF-6A9FFA91ECD6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WowQueueAgent.Tests", "WowQueueAgent.Tests\WowQueueAgent.Tests.csproj", "{7F4D1097-547E-419C-9761-8409273D8AF1}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{511EDDDF-3534-4F6B-BBFF-6A9FFA91ECD6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{511EDDDF-3534-4F6B-BBFF-6A9FFA91ECD6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{511EDDDF-3534-4F6B-BBFF-6A9FFA91ECD6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{511EDDDF-3534-4F6B-BBFF-6A9FFA91ECD6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F4D1097-547E-419C-9761-8409273D8AF1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F4D1097-547E-419C-9761-8409273D8AF1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F4D1097-547E-419C-9761-8409273D8AF1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F4D1097-547E-419C-9761-8409273D8AF1}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
