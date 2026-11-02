@@ -28,7 +28,7 @@ All messages are JSON text frames, agent → phone. The phone sends nothing.
 
 | kind | fired when |
 |---|---|
-| `LOGGED_IN` | the queue/login dialog is gone and no modal is shown |
+| `LOGGED_IN` | a recognized post-login screen is visible (for example, character select/create or gameplay ruleset) |
 | `DISCONNECTED` | disconnect dialog detected |
 | `ERROR` | other error dialog detected (patterns in `patterns.json`) |
 | `NO_CLIENT` | WoW window disappeared |
@@ -43,5 +43,8 @@ Events are not fired for the very first state seen after the agent starts (excep
  "etaUpdatedAt":"…","soon":true,"since":"…","observedAt":"…"}
 ```
 `state` is one of `UNKNOWN`, `NO_CLIENT`, `LOGGED_IN`, `QUEUE`, `DISCONNECTED`, `ERROR`.
+`UNKNOWN` is reported when OCR does not match a known state. The agent OCRs the center crop every
+poll and performs a full-window OCR fallback at most once every five seconds while the state is
+unknown, so post-login labels near the screen edges can still be recognized.
 `position`/`etaSeconds` are only present for `QUEUE`. `etaSeconds` is the value WoW displays (it is
 coarse, minutes), `etaUpdatedAt` is when it last changed. The phone treats >10 s of silence as a dead link.

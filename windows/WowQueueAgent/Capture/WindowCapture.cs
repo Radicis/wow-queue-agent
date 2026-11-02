@@ -117,7 +117,7 @@ public sealed class WindowCapturer : IDisposable
 
     // Crops to the configured region. Returns null when the frame is entirely black
     // (e.g. exclusive fullscreen), so callers don't mistake it for "no dialog".
-    public static SoftwareBitmap? Crop(SoftwareBitmap src, AgentConfig c)
+    public static SoftwareBitmap? Crop(SoftwareBitmap src, AgentConfig c, bool fullWindow = false)
     {
         int w = src.PixelWidth, h = src.PixelHeight;
         if (w < 16 || h < 16) return null;
@@ -129,10 +129,10 @@ public sealed class WindowCapturer : IDisposable
             if (buf[i] != 0 || buf[i + 1] != 0 || buf[i + 2] != 0) { anyContent = true; break; }
         if (!anyContent) return null;
 
-        int cx = Math.Clamp((int)(w * c.CropX), 0, w - 1);
-        int cy = Math.Clamp((int)(h * c.CropY), 0, h - 1);
-        int cw = Math.Clamp((int)(w * c.CropWidth), 1, w - cx);
-        int ch = Math.Clamp((int)(h * c.CropHeight), 1, h - cy);
+        int cx = fullWindow ? 0 : Math.Clamp((int)(w * c.CropX), 0, w - 1);
+        int cy = fullWindow ? 0 : Math.Clamp((int)(h * c.CropY), 0, h - 1);
+        int cw = fullWindow ? w : Math.Clamp((int)(w * c.CropWidth), 1, w - cx);
+        int ch = fullWindow ? h : Math.Clamp((int)(h * c.CropHeight), 1, h - cy);
 
         var crop = new byte[cw * ch * 4];
         for (int row = 0; row < ch; row++)

@@ -6,14 +6,27 @@ public sealed class StateClassifier
 {
     const RegexOptions Opts = RegexOptions.IgnoreCase | RegexOptions.CultureInvariant;
 
-    readonly Regex[] _disconnected, _error, _queue;
+    static readonly string[] RequiredDisconnectedIndicators =
+    {
+        @"have\s+been\s+disconnected",
+        @"\breconnect\b",
+    };
+
+    static readonly Regex Alliance = new(@"\balliance\b", Opts);
+    static readonly Regex Horde = new(@"\bhorde\b", Opts);
+    static readonly Regex CharacterCreation = new(@"\b(racial\s+traits|character\s+creation|character\s+name)\b", Opts);
+
+    readonly Regex[] _disconnected, _error, _queue, _loggedIn;
     readonly Regex _position, _eta;
 
     public StateClassifier(PatternConfig p)
     {
-        _disconnected = p.Disconnected.Select(x => new Regex(x, Opts)).ToArray();
+        _disconnected = p.Disconnected.Concat(RequiredDisconnectedIndicators)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(x => new Regex(x, Opts)).ToArray();
         _error = p.Error.Select(x => new Regex(x, Opts)).ToArray();
         _queue = p.QueueIndicators.Select(x => new Regex(x, Opts)).ToArray();
+        _loggedIn = p.LoggedIn.Select(x => new Regex(x, Opts)).ToArray();
         _position = new Regex(p.QueuePosition, Opts);
         _eta = new Regex(p.QueueEta, Opts);
     }
@@ -37,11 +50,16 @@ public sealed class StateClassifier
             return new(QueueState.Queue, position, eta, text);
         }
 
-        return new(QueueState.LoggedIn, Text: text);
+        if (_loggedIn.Any(r => r.IsMatch(text)) ||
+            (Alliance.IsMatch(text) && Horde.IsMatch(text) && CharacterCreation.IsMatch(text)))
+            return new(QueueState.LoggedIn, Text: text);
+
+        return new(QueueState.Unknown, Text: text);
     }
 
     static readonly Regex Unit = new(@"([\dOoIlSsBb]+)\s*(hours?|hrs?|minutes?|mins?|seconds?|secs?)\b", Opts);
-    static readonly Regex LessThan = new(@"less\s+than\s+(a|1|one)\s+minute", Opts);
+    static readonly Regex LessThan = new(
+        @"(?:<\s*[1Il]|less\s+than\s+(?:a|[1Il]|one)|under\s+(?:a|[1Il]|one))\s*(?:minutes?|mins?)\b", Opts);
 
     // Maps characters the OCR engine commonly confuses with digits, so queue
     // position/ETA numbers still parse correctly even when misread as letters.

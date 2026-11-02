@@ -19,22 +19,65 @@ public class ClassifierTests
 
     [Theory]
     [InlineData("Estimated time: less than a minute", 60)]
+    [InlineData("Estimated time: <1 minute", 60)]
+    [InlineData("Estimated time: < 1 min", 60)]
+    [InlineData("Estimated time: less than 1 minute", 60)]
+    [InlineData("Estimated time: under a minute", 60)]
     [InlineData("Estimated time: 1 hour 5 minutes", 3900)]
     [InlineData("Estimated time: 45 seconds", 45)]
     public void Eta_Variants(string text, int expected) =>
         Assert.Equal(expected, _c.Classify("Position in queue: 5\n" + text).EtaSeconds);
 
+    [Theory]
+    [InlineData("Realm is Full\nPosition in queue: 5\nEstimated time: 45 seconds", 5, 45)]
+    [InlineData("Login Servers are Full\nPosition in queue: 1,234\nEstimated time: 12 minutes", 1234, 720)]
+    [InlineData("Realm is Full", null, null)]
+    public void FullServerDialogs_AreQueue(string text, int? position, int? eta) {
+        var o = _c.Classify(text);
+        Assert.Equal(QueueState.Queue, o.State);
+        Assert.Equal(position, o.Position);
+        Assert.Equal(eta, o.EtaSeconds);
+    }
+
+    [Theory]
+    [InlineData("Choose Your Gameplay Ruleset")]
+    [InlineData("Realm\nEnter World\nCreate New Character\nDelete Character")]
+    [InlineData("Alliance\nHorde\nHigh Elf\nRacial Traits\nMage")]
+    public void PostLoginScreens_AreLoggedIn(string text) =>
+        Assert.Equal(QueueState.LoggedIn, _c.Classify(text).State);
+
     [Fact]
     public void Disconnected() =>
         Assert.Equal(QueueState.Disconnected, _c.Classify("You have been disconnected from the server.").State);
+
+    [Theory]
+    [InlineData("Reconnect\nLog Out")]
+    [InlineData("have been disconnected. (WOW51900102)")]
+    public void AlternateDisconnectScreens_AreDisconnected(string text)
+    {
+        var oldConfig = new PatternConfig
+        {
+            Disconnected = new[]
+            {
+                @"disconnected\s+from\s+(the\s+)?server",
+                @"you\s+have\s+been\s+disconnected",
+                @"lost\s+connection",
+            },
+        };
+        Assert.Equal(QueueState.Disconnected, new StateClassifier(oldConfig).Classify(text).State);
+    }
 
     [Fact]
     public void Error() =>
         Assert.Equal(QueueState.Error, _c.Classify("Unable to connect").State);
 
     [Fact]
-    public void NoDialog_IsLoggedIn() =>
-        Assert.Equal(QueueState.LoggedIn, _c.Classify("").State);
+    public void BlankOcr_IsUnknown() =>
+        Assert.Equal(QueueState.Unknown, _c.Classify("").State);
+
+    [Fact]
+    public void UnmatchedNonEmptyText_IsUnknown() =>
+        Assert.Equal(QueueState.Unknown, _c.Classify("World of Warcraft").State);
 
     [Fact]
     public void DisconnectBeatsQueue() =>
@@ -82,6 +125,16 @@ public class TrackerTests
         var (t, _) = Make();
         t.Update(S(QueueState.LoggedIn));
         Assert.Empty(t.Update(S(QueueState.LoggedIn)));
+    }
+
+    [Fact]
+    public void LoggedInAfterUnknown_NotifiesAfterStartup()
+    {
+        var (t, _) = Make();
+        t.Update(Q(30)); t.Update(Q(30));
+        t.Update(S(QueueState.Unknown)); t.Update(S(QueueState.Unknown));
+        t.Update(S(QueueState.LoggedIn));
+        Assert.Contains(t.Update(S(QueueState.LoggedIn)), e => e.Kind == "LOGGED_IN");
     }
 
     [Fact]

@@ -13,7 +13,7 @@ public sealed class AgentConfig
     public string[] ProcessNames { get; set; } =
         { "Wow", "Wow-64", "WowClassic", "WowT", "WowB", "WowClassicT", "WowClassicB" };
     public string[] WindowTitles { get; set; } = { "World of Warcraft" };
-    // Only the centre of the window is OCR'd so chat text cannot trigger false positives.
+    // The centre is OCR'd first; an occasional full-window pass handles UI text near the edges.
     public double CropX { get; set; } = 0.2;
     public double CropY { get; set; } = 0.2;
     public double CropWidth { get; set; } = 0.6;
@@ -48,6 +48,16 @@ public sealed class PatternConfig
     {
         @"position\s+in\s+queue",
         @"estimated\s+time",
+        @"realm\s+is\s+full",
+        @"login\s+servers?\s+are\s+full",
+    };
+
+    public string[] LoggedIn { get; set; } =
+    {
+        @"\benter\s+world\b",
+        @"\bcreate\s+new\s+character\b",
+        @"\bchoose\s+your\s+gameplay\s+ruleset\b",
+        @"\bdelete\s+character\b",
     };
 
     // Character classes include common OCR digit lookalikes (O/o, I/l/i, S/s, B/b);

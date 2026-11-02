@@ -12,6 +12,7 @@ public sealed class StateTracker
     QueueState _stable = QueueState.Unknown;
     QueueState _pending = QueueState.Unknown;
     int _pendingCount;
+    bool _hasObservedState;
     DateTimeOffset _since;
     DateTimeOffset _observedAt;
     int? _position, _eta;
@@ -50,12 +51,12 @@ public sealed class StateTracker
 
         if (_pending != _stable && _pendingCount >= _debounce)
         {
-            var previous = _stable;
             _stable = _pending;
             _since = now;
             _position = _eta = null;
             _etaUpdatedAt = null;
-            if (previous != QueueState.Unknown) fired.AddRange(TransitionEvents(_stable, now));
+            if (_hasObservedState) fired.AddRange(TransitionEvents(_stable, now));
+            _hasObservedState = true;
             if (_stable != QueueState.Queue) _soonArmed = true;
         }
 
