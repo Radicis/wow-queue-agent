@@ -43,6 +43,9 @@ public class ClassifierTests
     [InlineData("Choose Your Gameplay Ruleset")]
     [InlineData("Realm\nEnter World\nCreate New Character\nDelete Character")]
     [InlineData("Alliance\nHorde\nHigh Elf\nRacial Traits\nMage")]
+    [InlineData("Alliance\nHuman\nDwarf\nElf\nHorde\nOrc\nTroll\nTauren\nHigh Elf\nRacial Traits\nKeen Senses\nArcane Affinity\nClass\nMage\nCreate Character\nBack\nDisconnected\nReconnect\nError\nRuleset\nCharacter select\nCharacter create\nBlank / Unknown")]
+    [InlineData("Realm: Silvervale\nCharacters\nZan\nLevel 70 Mage\nBananastick\nLevel 70 Warrior\nEnter World\nCreate New Character\nDelete Character\nDisconnected\nReconnect\nError\nRuleset\nCharacter select\nCharacter create\nBlank / Unknown")]
+    [InlineData("Choose Your Gameplay Ruleset\nNormal\nExplore a cooperative world.\nPvP\nCompete against other players.\nRoleplay\nCreate stories with other players.\nRoleplay PvP\nSelect\nDisconnected\nReconnect\nError\nRuleset\nCharacter select\nCharacter create\nBlank / Unknown")]
     public void PostLoginScreens_AreLoggedIn(string text) =>
         Assert.Equal(QueueState.LoggedIn, _c.Classify(text).State);
 

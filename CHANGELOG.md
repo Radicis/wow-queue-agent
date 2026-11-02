@@ -8,6 +8,12 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 ### Changed
 - CI now requires pull requests to include an entry under `[Unreleased]`.
 
+## [1.0.2] - 2026-11-02
+
+### Fixed
+- Windows agent no longer treats a standalone `Reconnect` label as a disconnection; reconnect
+  screens require accompanying `Log Out` text, avoiding false disconnects on recognized game screens.
+
 ## [1.0.1] - 2026-11-02
 
 ### Changed

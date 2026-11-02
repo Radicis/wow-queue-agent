@@ -9,9 +9,10 @@ public sealed class StateClassifier
     static readonly string[] RequiredDisconnectedIndicators =
     {
         @"have\s+been\s+disconnected",
-        @"\breconnect\b",
     };
 
+    static readonly Regex Reconnect = new(@"\breconnect\b", Opts);
+    static readonly Regex LogOut = new(@"\blog\s*out\b", Opts);
     static readonly Regex Alliance = new(@"\balliance\b", Opts);
     static readonly Regex Horde = new(@"\bhorde\b", Opts);
     static readonly Regex CharacterCreation = new(@"\b(racial\s+traits|character\s+creation|character\s+name)\b", Opts);
@@ -53,6 +54,9 @@ public sealed class StateClassifier
         if (_loggedIn.Any(r => r.IsMatch(text)) ||
             (Alliance.IsMatch(text) && Horde.IsMatch(text) && CharacterCreation.IsMatch(text)))
             return new(QueueState.LoggedIn, Text: text);
+
+        if (Reconnect.IsMatch(text) && LogOut.IsMatch(text))
+            return new(QueueState.Disconnected, Text: text);
 
         return new(QueueState.Unknown, Text: text);
     }
