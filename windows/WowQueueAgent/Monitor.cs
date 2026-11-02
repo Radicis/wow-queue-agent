@@ -20,6 +20,8 @@ public sealed class QueueMonitor
     QueueState _lastLogged = QueueState.Unknown;
     DateTimeOffset? _lastFullFrameOcrAt;
     Observation? _lastFullFrameObservation;
+    long _lastProcessedFrameVersion = -1;
+    Observation? _lastFrameObservation;
 
     public QueueMonitor(AgentConfig cfg, PatternConfig patterns, StateTracker tracker, AgentServer server)
     {
@@ -71,6 +73,8 @@ public sealed class QueueMonitor
             {
                 Log.Write("Loop error: " + ex);
                 _capturer.Stop();
+                _lastProcessedFrameVersion = -1;
+                _lastFrameObservation = null;
             }
 
             try { await Task.Delay(_cfg.PollIntervalMs, ct); } catch (OperationCanceledException) { }
@@ -85,6 +89,8 @@ public sealed class QueueMonitor
         if (hwnd == IntPtr.Zero)
         {
             _capturer.Stop();
+            _lastProcessedFrameVersion = -1;
+            _lastFrameObservation = null;
             ResetFullFrameFallback();
             return new Observation(QueueState.NoClient);
         }
@@ -94,6 +100,8 @@ public sealed class QueueMonitor
         {
             ResetFullFrameFallback();
             if (!_capturer.Start(hwnd)) return null;
+            _lastProcessedFrameVersion = -1;
+            _lastFrameObservation = null;
             await Task.Delay(300);
         }
 
@@ -103,6 +111,13 @@ public sealed class QueueMonitor
             Status = "No usable frame (is WoW in exclusive fullscreen?)";
             return null;
         }
+
+        // Reuse the OCR result so state debouncing still advances without reprocessing static frames.
+        if (_capturer.FrameVersion == _lastProcessedFrameVersion)
+            return _lastFrameObservation;
+
+        _lastProcessedFrameVersion = _capturer.FrameVersion;
+        _lastFrameObservation = null;
 
         using var frame = WindowCapturer.Crop(full, _cfg);
         if (frame == null)
@@ -116,19 +131,28 @@ public sealed class QueueMonitor
         if (observation.State != QueueState.Unknown)
         {
             ResetFullFrameFallback();
-            return observation;
+            _lastFrameObservation = observation;
+            return _lastFrameObservation;
         }
 
         var now = DateTimeOffset.UtcNow;
         if (_lastFullFrameOcrAt is { } last && now - last < FullFrameOcrInterval)
-            return _lastFullFrameObservation ?? observation;
+        {
+            _lastFrameObservation = _lastFullFrameObservation ?? observation;
+            return _lastFrameObservation;
+        }
 
         _lastFullFrameOcrAt = now;
         using var fullFrame = WindowCapturer.Crop(full, _cfg, fullWindow: true);
-        if (fullFrame == null) return observation;
+        if (fullFrame == null)
+        {
+            _lastFrameObservation = observation;
+            return _lastFrameObservation;
+        }
         var fullResult = await _ocr.RecognizeAsync(fullFrame);
         _lastFullFrameObservation = _classifier.Classify(fullResult.Text);
-        return _lastFullFrameObservation;
+        _lastFrameObservation = _lastFullFrameObservation;
+        return _lastFrameObservation;
     }
 
     void ResetFullFrameFallback()

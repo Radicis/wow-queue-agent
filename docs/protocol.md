@@ -6,7 +6,7 @@ The Windows agent hosts a WebSocket server. The phone connects as a client.
 ws://<pc-ip>:<port>/ws
 ```
 
-- No authentication: anyone on the same network can connect and read the queue state. It is read-only.
+- No authentication: anyone on the same network can connect and read the queue state. The agent accepts up to four clients and closes clients that send application data.
 - Plain `ws://`, LAN only.
 - Default port `47821`, configured in `config.json`.
 - Discovery: the agent advertises `_wowqueue._tcp` over mDNS (service name = PC name).
@@ -43,8 +43,8 @@ Events are not fired for the very first state seen after the agent starts (excep
  "etaUpdatedAt":"…","soon":true,"since":"…","observedAt":"…"}
 ```
 `state` is one of `UNKNOWN`, `NO_CLIENT`, `LOGGED_IN`, `QUEUE`, `DISCONNECTED`, `ERROR`.
-`UNKNOWN` is reported when OCR does not match a known state. The agent OCRs the center crop every
-poll and performs a full-window OCR fallback at most once every five seconds while the state is
-unknown, so post-login labels near the screen edges can still be recognized.
+`UNKNOWN` is reported when OCR does not match a known state. The agent OCRs only when a new capture
+frame arrives and performs a full-window OCR fallback at most once every five seconds while the
+state is unknown, so post-login labels near the screen edges can still be recognized.
 `position`/`etaSeconds` are only present for `QUEUE`. `etaSeconds` is the value WoW displays (it is
 coarse, minutes), `etaUpdatedAt` is when it last changed. The phone treats >10 s of silence as a dead link.

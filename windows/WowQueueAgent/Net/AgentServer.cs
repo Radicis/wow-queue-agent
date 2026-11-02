@@ -18,6 +18,8 @@ namespace WowQueueAgent.Net;
 
 public sealed class AgentServer : IAsyncDisposable
 {
+    const int MaxClients = 4;
+
     static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web)
     {
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
@@ -26,6 +28,7 @@ public sealed class AgentServer : IAsyncDisposable
     readonly AgentConfig _cfg;
     readonly StateTracker _tracker;
     readonly List<WebSocket> _clients = new();
+    readonly SemaphoreSlim _clientSlots = new(MaxClients, MaxClients);
     WebApplication? _app;
     ServiceDiscovery? _mdns;
 
@@ -58,11 +61,18 @@ public sealed class AgentServer : IAsyncDisposable
     async Task HandleAsync(HttpContext ctx)
     {
         if (!ctx.WebSockets.IsWebSocketRequest) { ctx.Response.StatusCode = 400; return; }
+        if (!_clientSlots.Wait(0))
+        {
+            ctx.Response.StatusCode = StatusCodes.Status503ServiceUnavailable;
+            return;
+        }
 
-        using var ws = await ctx.WebSockets.AcceptWebSocketAsync();
-        lock (_clients) _clients.Add(ws);
+        WebSocket? ws = null;
         try
         {
+            ws = await ctx.WebSockets.AcceptWebSocketAsync();
+            lock (_clients) _clients.Add(ws);
+
             await SendAsync(ws, new
             {
                 type = "hello", v = 1, agent = Environment.MachineName, bootId = _tracker.BootId,
@@ -70,17 +80,37 @@ public sealed class AgentServer : IAsyncDisposable
             foreach (var e in _tracker.RecentEvents(TimeSpan.FromMinutes(10))) await SendAsync(ws, EventMessage(e));
             await SendAsync(ws, StateMessage());
 
-            var buf = new byte[256];
+            var buf = new byte[1];
             while (ws.State == WebSocketState.Open)
             {
-                var r = await ws.ReceiveAsync(buf, ctx.RequestAborted);
-                if (r.MessageType == WebSocketMessageType.Close) break;
+                var r = await ws.ReceiveAsync(new ArraySegment<byte>(buf), ctx.RequestAborted);
+                if (r.MessageType == WebSocketMessageType.Close)
+                {
+                    if (ws.State == WebSocketState.CloseReceived)
+                        await ws.CloseOutputAsync(
+                            r.CloseStatus ?? WebSocketCloseStatus.NormalClosure,
+                            r.CloseStatusDescription,
+                            ctx.RequestAborted);
+                    break;
+                }
+
+                await ws.CloseOutputAsync(
+                    WebSocketCloseStatus.PolicyViolation,
+                    "Agent is read-only.",
+                    ctx.RequestAborted);
+                break;
             }
         }
-        catch { }
+        catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested) { }
+        catch (WebSocketException ex) { Log.Write("WebSocket client disconnected: " + ex.Message); }
         finally
         {
-            lock (_clients) _clients.Remove(ws);
+            if (ws != null)
+            {
+                lock (_clients) _clients.Remove(ws);
+                ws.Dispose();
+            }
+            _clientSlots.Release();
         }
     }
 
@@ -144,5 +174,6 @@ public sealed class AgentServer : IAsyncDisposable
     {
         _mdns?.Dispose();
         if (_app != null) await _app.StopAsync();
+        _clientSlots.Dispose();
     }
 }

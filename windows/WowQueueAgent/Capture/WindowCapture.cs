@@ -66,6 +66,7 @@ public sealed class WindowCapturer : IDisposable
 
     public IntPtr Hwnd { get; private set; }
     public bool IsActive => _session != null && !_closed;
+    public long FrameVersion { get; private set; }
 
     public bool Start(IntPtr hwnd)
     {
@@ -91,6 +92,7 @@ public sealed class WindowCapturer : IDisposable
         _item = null;
         _last?.Dispose(); _last = null;
         Hwnd = IntPtr.Zero;
+        FrameVersion = 0;
     }
 
     // Returns the most recent frame; frames only arrive when the window content changes.
@@ -111,6 +113,7 @@ public sealed class WindowCapturer : IDisposable
             _last?.Dispose();
             _last = await SoftwareBitmap.CreateCopyFromSurfaceAsync(newest.Surface);
             newest.Dispose();
+            FrameVersion++;
         }
         return _last;
     }
