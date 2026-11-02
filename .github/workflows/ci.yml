@@ -10,6 +10,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changelog:
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check CHANGELOG has an Unreleased entry
+        shell: pwsh
+        run: ./scripts/check-changelog.ps1
+
   windows:
     runs-on: windows-latest
     steps:

@@ -5,6 +5,17 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Versioning: [S
 
 ## [Unreleased]
 
+### Changed
+- CI now requires pull requests to include an entry under `[Unreleased]`.
+
+## [1.0.1] - 2026-11-02
+
+### Changed
+- Windows agent: skip redundant OCR when the captured window frame hasn't changed, reusing the last
+  observation so state debouncing still advances without reprocessing static frames.
+- Windows agent: limit the local WebSocket server to 4 concurrent clients, enforce a proper close
+  handshake, and reject unexpected incoming messages since the agent connection is read-only.
+
 ## [1.0.0] - 2026-11-02
 
 ### Added
